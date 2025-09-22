@@ -118,7 +118,7 @@ class PlayerModelThree {
     pmremGenerator.compileCubemapShader();
     const envMap = pmremGenerator.fromScene(environment).texture;
     this.scene.environment = envMap;
-    this.scene.environmentIntensity = 2.0;
+    this.scene.environmentIntensity = 1.75;
   }
 
   loadModels() {
