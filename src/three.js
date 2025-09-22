@@ -123,7 +123,7 @@ class PlayerModelThree {
   }
 
   loadModels() {
-    const modelPath = "/player.glb";
+    const modelPath = import.meta.env.BASE_URL + "player.glb";
 
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath(
