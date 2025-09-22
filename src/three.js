@@ -102,9 +102,9 @@ class PlayerModelThree {
       window.innerWidth,
       window.innerHeight
     );
-    this.ssaoPass.kernelRadius = 16;
-    this.ssaoPass.minDistance = 0.001;
-    this.ssaoPass.maxDistance = 0.1;
+    this.ssaoPass.kernelRadius = 3.0; // Increased from 16
+    this.ssaoPass.minDistance = 0.00001; // Reduced for tighter occlusion
+    this.ssaoPass.maxDistance = 0.9;
 
     this.composer.addPass(this.ssaoPass);
 
