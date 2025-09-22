@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import gsap from "gsap";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
@@ -36,8 +37,6 @@ const NoiseShader = {
     
     void main() {
       vec4 color = texture2D(tDiffuse, vUv);
-      float noise = random(vUv + time) * 2.0 - 1.0;
-      color.rgb += noise * amount;
       gl_FragColor = color;
     }
   `,
@@ -209,7 +208,7 @@ class PlayerModelThree {
         }
         .now-playing {
           background: rgba(255, 255, 255, 0.1);
-          border-left: 3px solid #ffffff;
+          border-left: 8px solid #ffffff;
         }
       </style>
       <div class="music-player">
@@ -249,8 +248,6 @@ class PlayerModelThree {
 
     this.cssObject = new CSS3DObject(htmlElement);
     this.cssObject.scale.set(0.0015, 0.0015, 0.0015);
-    this.cssObject.rotation.x = -Math.PI / 2;
-
     this.cssGroup = new THREE.Group();
     this.cssGroup.add(this.cssObject);
     this.cssScene.add(this.cssGroup);
@@ -281,6 +278,112 @@ class PlayerModelThree {
     });
 
     window.addEventListener("resize", () => this.resize());
+
+    this.handleButtonClicks();
+    this.handleScrollDrag();
+  }
+
+  handleScrollDrag() {
+    this.isDragging = false;
+    this.dragObject = null;
+    this.previousMouseY = 0;
+
+    const onMouseDown = (event) => {
+      this.mouseVector.x = (event.clientX / window.innerWidth) * 2 - 1;
+      this.mouseVector.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      this.raycaster.setFromCamera(this.mouseVector, this.camera);
+      const intersects = this.raycaster.intersectObjects(
+        this.scene.children,
+        true
+      );
+
+      if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+
+        if (clickedObject.userData.name === "scroll") {
+          this.isDragging = true;
+          this.dragObject = clickedObject;
+          this.previousMouseY = event.clientY;
+          document.body.style.cursor = "grabbing";
+          event.preventDefault();
+        }
+      }
+    };
+
+    const onMouseMove = (event) => {
+      if (this.isDragging && this.dragObject) {
+        const deltaY = event.clientY - this.previousMouseY;
+        const rotationSpeed = 0.01;
+
+        this.dragObject.rotation.x += deltaY * rotationSpeed;
+        this.previousMouseY = event.clientY;
+        event.preventDefault();
+      }
+    };
+
+    const onMouseUp = () => {
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.dragObject = null;
+        document.body.style.cursor = "default";
+      }
+    };
+
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }
+
+  handleButtonClicks() {
+    const userDataName = "Cylinder035_keys";
+
+    this.raycaster = new THREE.Raycaster();
+    this.mouseVector = new THREE.Vector2();
+
+    window.addEventListener("click", (event) => {
+      this.mouseVector.x = (event.clientX / window.innerWidth) * 2 - 1;
+      this.mouseVector.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      this.raycaster.setFromCamera(this.mouseVector, this.camera);
+
+      const intersects = this.raycaster.intersectObjects(
+        this.scene.children,
+        true
+      );
+
+      if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+
+        if (
+          clickedObject.userData.name &&
+          clickedObject.userData.name.startsWith(userDataName)
+        ) {
+          this.animateButtonPress(clickedObject);
+        }
+      }
+    });
+  }
+
+  animateButtonPress(buttonObject) {
+    if (!buttonObject.userData.originalPosition) {
+      buttonObject.userData.originalPosition = buttonObject.position.clone();
+    }
+
+    const timeline = gsap.timeline();
+
+    timeline
+      .to(buttonObject.position, {
+        duration: 0.1,
+        z: buttonObject.userData.originalPosition.z - 0.02,
+        ease: "power2.out",
+      })
+      .to(buttonObject.position, {
+        duration: 0.15,
+        z: buttonObject.userData.originalPosition.z,
+        ease: "bounce.out",
+        delay: 0.1,
+      });
   }
 
   render() {
@@ -292,7 +395,6 @@ class PlayerModelThree {
 
   animate() {
     this.time += this.clock.getDelta();
-    this.noisePass.uniforms.time.value = this.time;
     this.cameraRig();
     this.modelFloat();
     this.syncScreenPosition();
